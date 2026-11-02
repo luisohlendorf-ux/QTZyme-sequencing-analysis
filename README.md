@@ -1,0 +1,218 @@
+# QTZyme Selection Sequencing Analysis
+
+This repository contains the code used to process and analyse deep-sequencing data from an in vitro RNA selection experiment. The workflow was developed to extract randomized RNA regions from Illumina sequencing reads, quantify sequence abundance across selection rounds, cluster related sequences into families, compare replicate selection trajectories, and analyse sequence variation within enriched families.
+
+## Overview
+
+The analysis includes:
+
+- trimming constant regions from Illumina sequencing reads;
+- extraction of the randomized N50 region;
+- collapsing identical sequences and determining sequence abundance;
+- global sequence clustering into related families;
+- tracking clone and cluster abundance across selection rounds;
+- comparison of original and repeat selection trajectories;
+- calculation of enrichment and repeat-enrichment advantage;
+- analysis of single-nucleotide variants;
+- pairwise sequence-identity calculations;
+- multiple sequence alignment and sequence-similarity clustering;
+- nucleotide heatmaps and other graphical summaries of sequence evolution.
+
+The sequencing datasets analysed here include selection rounds R1, R4, R5, R6, R7 and R8, together with independently repeated R5 and R6 selections.
+
+## Software
+
+The analysis was performed primarily in JupyterLab using Python.
+
+Major software and packages used include:
+
+- Python
+- JupyterLab
+- Cutadapt 4.9
+- VSEARCH
+- BBMap / BBMerge
+- Biopython
+- pandas
+- NumPy
+- SciPy
+- Matplotlib
+
+Some exploratory analysis and code development were assisted by ChatGPT.
+
+## Read preprocessing
+
+Paired-end sequencing reads were initially processed using Cutadapt to identify and remove constant flanking regions.
+
+The principal Cutadapt parameters were:
+
+```text
+-g GCGAAATTAATACGACTCACTATAGGTGCAAACAAACAACAAAACAAACAAACAG
+-G GGCGGGCTCGATTCCGTTATCAATGTCCGACTGCGCTGCCCTGCC
+-e 0.2
+-O 12
+-m 60
+--discard-untrimmed
+-j 0
+```
+
+For analyses based on the forward read, the randomized N50 region was extracted relative to the downstream constant sequence:
+
+```text
+GGCAGGGCAGCGCAGTC
+```
+
+The 50 nucleotides immediately upstream of this sequence were treated as the randomized N50 region.
+
+## Sequence collapsing
+
+Identical N50 sequences were collapsed to unique sequences while retaining their sequencing read counts.
+
+Collapsed sequence tables were generated independently for each selection round and subsequently used for abundance and enrichment analyses.
+
+## Sequence clustering
+
+Unique N50 sequences pooled across the original selection rounds were clustered using VSEARCH.
+
+The principal analysis used a global sequence-identity threshold of:
+
+```text
+94%
+```
+
+Each cluster was represented by a centroid sequence. Cluster membership was subsequently used to track related sequence families across selection rounds.
+
+The most abundant families in round 8 were additionally labelled:
+
+```text
+Clone 1
+Clone 2
+...
+Clone 10
+```
+
+These clone labels therefore refer to cluster abundance rank in R8 rather than to independent sequence identifiers.
+
+## Repeat-selection analysis
+
+Independent repeat datasets corresponding to rounds 5 and 6 were assigned to the previously defined 94% sequence clusters.
+
+This made it possible to compare the evolutionary trajectories of sequence families between the original and repeated selections without redefining sequence families independently in each experiment.
+
+Cluster frequencies were calculated as the fraction of sequencing reads assigned to each cluster.
+
+## Enrichment calculations
+
+For each sequence cluster, enrichment between rounds was calculated from changes in sequencing frequency.
+
+A small pseudocount of 0.5 reads was used where necessary to avoid undefined enrichment values for clusters with zero observed reads.
+
+For the original selection:
+
+```text
+R4 → R5 → R6
+```
+
+For the repeated selection:
+
+```text
+R4 → R5 repeat → R6 repeat
+```
+
+Overall enrichment from R4 to R6 was calculated for each trajectory.
+
+The repeat-enrichment advantage was defined as:
+
+```text
+repeat advantage =
+log2 enrichment in repeat selection
+-
+log2 enrichment in original selection
+```
+
+A positive value therefore indicates that a cluster enriched more strongly in the repeated selection than in the original experiment.
+
+For example:
+
+```text
+repeat advantage = +1
+```
+
+corresponds to a two-fold stronger enrichment in the repeated trajectory relative to the original trajectory.
+
+## Sequence variation
+
+Several analyses were used to examine diversification within enriched sequence families.
+
+These include:
+
+- single-nucleotide mutation maps relative to cluster centroids;
+- mutual-information analysis of covarying nucleotide positions;
+- nucleotide heatmaps;
+- consensus-sequence analysis;
+- pairwise global sequence alignment allowing substitutions, insertions and deletions;
+- pairwise sequence identity matrices;
+- hierarchical clustering of clone sequences.
+
+Because the analysed randomized regions are short RNA sequences generated by an artificial selection process, hierarchical trees are interpreted as **sequence-similarity dendrograms** rather than phylogenetic trees.
+
+## Pairwise sequence identity
+
+Pairwise sequence identity was calculated using global alignment with substitutions and indels permitted.
+
+For an aligned pair of sequences:
+
+```text
+percent identity =
+number of matching aligned nucleotides
+/
+total alignment length
+× 100
+```
+
+The mean pairwise identity among a set of clones provides a simple summary of the degree of sequence similarity within that group.
+
+## Repository structure
+
+A typical analysis directory contains files such as:
+
+```text
+N50_extracted/
+N50_collapsed/
+N50_clusters_94/
+N50_repeat_clusters_94/
+enrichment_top100/
+```
+
+Important outputs include:
+
+```text
+sequence_ids.tsv
+cluster_assignments.uc
+family_centroids.fasta
+top10_clones_share_by_round.tsv
+positive_repeat_advantage_cluster_N50_sequences.tsv
+```
+
+Additional figures and intermediate tables generated by the notebooks are stored alongside the relevant analysis outputs.
+
+## Reproducibility
+
+The notebooks are intended to document both the computational workflow and the parameters used during analysis.
+
+For full reproducibility, users should record the exact versions of all command-line tools and Python packages used in their environment. Paths used in the original notebooks may be specific to the original analysis computer and may need to be changed before running the workflow elsewhere.
+
+Where possible, analyses should be rerun from the original FASTQ files rather than relying only on derived tables.
+
+## Citation
+
+If this repository is associated with a publication, please cite the corresponding manuscript.
+
+Software used in the analysis should also be cited where appropriate, including Cutadapt, VSEARCH, BBMap, Biopython, Jupyter, and the relevant Python scientific-computing packages.
+
+## AI-assisted code development
+
+Parts of the analysis code were developed interactively with assistance from ChatGPT (OpenAI). AI-generated code was reviewed, modified and executed by the authors as part of the analysis workflow.
+
+## License
+
+Add the appropriate software and data license for this repository here.
